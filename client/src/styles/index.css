@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    font-family: 'Archivo', system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background-color: #c9a468;
+    color: #0a0a0a;
+  }
+
+  :focus-visible {
+    outline: 2px solid #c9a468;
+    outline-offset: 2px;
+  }
+}
