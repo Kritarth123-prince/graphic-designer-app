@@ -7,12 +7,26 @@ const { asyncHandler } = require('./utils/asyncHandler');
 
 const app = express();
 
-app.set('trust proxy', 1);
+// Trailing-slash mismatches (CLIENT_URL="https://x.netlify.app/" vs the
+// browser's actual Origin header "https://x.netlify.app") are a common,
+// easy-to-miss cause of every cross-origin request failing — normalize
+// it away rather than requiring an exact match including the slash.
+const allowedOrigin = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+
+if (!allowedOrigin) {
+  console.warn(
+    '[cors] WARNING: CLIENT_URL is not set. Every request from the frontend ' +
+      'will be blocked by CORS until this is set to your deployed frontend URL ' +
+      '(e.g. https://your-site.netlify.app, no trailing slash).'
+  );
+} else {
+  console.log(`[cors] Allowing requests from: ${allowedOrigin}`);
+}
 
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: allowedOrigin,
     credentials: true,
   })
 );
