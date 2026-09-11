@@ -2,12 +2,19 @@ const { ContactInquiry } = require('../models');
 const { getOrCreateSettings } = require('../services/settings.service');
 const { sendContactNotification, sendContactConfirmation } = require('../services/email.service');
 const { saveAttachment, deleteAttachment, attachmentFilePath } = require('../services/fileStorage.service');
+const { isValidAttachment } = require('../utils/fileSignature');
 
 // ---------- Public ----------
 
 async function submit(req, res) {
   let attachment = { storageKey: null, originalName: null };
   if (req.file) {
+    if (!isValidAttachment(req.file.buffer)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Attachment content does not match an accepted file type (image, PDF, or Word document).',
+      });
+    }
     const key = await saveAttachment(req.file.buffer, req.file.originalname);
     attachment = { storageKey: key, originalName: req.file.originalname };
   }

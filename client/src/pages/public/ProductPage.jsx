@@ -7,6 +7,7 @@ import { buildWhatsAppOrderUrl } from '../../utils/whatsapp';
 import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import ProductGallery from '../../components/product/ProductGallery';
 import OrderDetailsModal from '../../components/product/OrderDetailsModal';
+import UpiPaymentDetails from '../../components/product/UpiPaymentDetails';
 import EmptyState from '../../components/common/EmptyState';
 
 export default function ProductPage() {
@@ -37,6 +38,23 @@ export default function ProductPage() {
     description: product?.seo?.metaDescription || product?.shortDescription || product?.description,
     image: product?.seo?.ogImage || product?.thumbnail,
     path: product ? `/shop/${product.slug}` : undefined,
+    structuredData: product
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.title,
+          description: product.shortDescription || product.description,
+          image: product.previewImages?.map((img) => img.url),
+          sku: product.productId,
+          offers: {
+            '@type': 'Offer',
+            price: product.price,
+            priceCurrency: product.currency || 'INR',
+            availability: 'https://schema.org/InStock',
+            url: `${window.location.origin}/shop/${product.slug}`,
+          },
+        }
+      : undefined,
   });
 
   if (loading) {
@@ -106,7 +124,7 @@ export default function ProductPage() {
           <p className="text-xs text-ink/40">{product.category?.name}</p>
           <h1 className="font-serif text-3xl md:text-4xl mt-2">{product.title}</h1>
 
-          <div className="mt-4 flex items-baseline gap-4">
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
             <span className="text-xl">
               {product.currency || 'INR'} {product.price}
             </span>
@@ -117,21 +135,21 @@ export default function ProductPage() {
 
           <dl className="mt-8 space-y-2 text-sm">
             {product.dimensions && (
-              <div className="flex justify-between border-b border-ink/10 py-2 max-w-md">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-ink/10 py-2 max-w-md">
                 <dt className="text-ink/40">Dimensions</dt>
                 <dd>{product.dimensions}</dd>
               </div>
             )}
             {product.format && (
-              <div className="flex justify-between border-b border-ink/10 py-2 max-w-md">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-ink/10 py-2 max-w-md">
                 <dt className="text-ink/40">File format</dt>
                 <dd>{product.format}</dd>
               </div>
             )}
             {product.includedFiles?.length > 0 && (
-              <div className="flex justify-between border-b border-ink/10 py-2 max-w-md">
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 border-b border-ink/10 py-2 max-w-md">
                 <dt className="text-ink/40">Included files</dt>
-                <dd className="text-right">{product.includedFiles.join(', ')}</dd>
+                <dd className="sm:text-right">{product.includedFiles.join(', ')}</dd>
               </div>
             )}
           </dl>
@@ -152,6 +170,8 @@ export default function ProductPage() {
             <p className="mt-3 text-xs text-ink/40 text-center">
               Manual UPI payment · Payment verified personally
             </p>
+
+            <UpiPaymentDetails upi={settings.upi} />
           </div>
 
           <p className="mt-6 text-xs text-ink/40 max-w-md leading-relaxed">

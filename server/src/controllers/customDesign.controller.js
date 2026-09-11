@@ -1,12 +1,19 @@
 const { CustomDesignRequest } = require('../models');
 const { sendCustomDesignNotification } = require('../services/email.service');
 const { saveAttachment, deleteAttachment, attachmentFilePath } = require('../services/fileStorage.service');
+const { isValidAttachment } = require('../utils/fileSignature');
 
 // ---------- Public ----------
 
 async function submit(req, res) {
   let referenceFile = { storageKey: null, originalName: null };
   if (req.file) {
+    if (!isValidAttachment(req.file.buffer)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reference file content does not match an accepted file type (image, PDF, or Word document).',
+      });
+    }
     const key = await saveAttachment(req.file.buffer, req.file.originalname);
     referenceFile = { storageKey: key, originalName: req.file.originalname };
   }

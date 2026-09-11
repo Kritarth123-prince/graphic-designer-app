@@ -78,12 +78,12 @@ export default function OrdersPage() {
     <div>
       <h1 className="text-xl font-semibold">Orders</h1>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search order ID, product, or customer…"
-          className="rounded border border-neutral-300 px-3 py-2 text-sm w-80 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          className="rounded border border-neutral-300 px-3 py-2 text-sm w-full sm:w-80 focus:outline-none focus:ring-2 focus:ring-neutral-900"
         />
         <select
           value={status}
@@ -99,8 +99,8 @@ export default function OrdersPage() {
         </select>
       </div>
 
-      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-neutral-50 text-neutral-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3 font-medium">Order ID</th>
@@ -126,7 +126,7 @@ export default function OrdersPage() {
             {orders.map((o) => (
               <Fragment key={o._id}>
                 <tr className="cursor-pointer hover:bg-neutral-50" onClick={() => toggleExpand(o)}>
-                  <td className="px-5 py-3 font-mono text-xs">{o.orderId}</td>
+                  <td className="px-5 py-3 font-mono text-xs whitespace-nowrap">{o.orderId}</td>
                   <td className="px-5 py-3">{o.productName}</td>
                   <td className="px-5 py-3">{o.customerName || <span className="text-neutral-400">—</span>}</td>
                   <td className="px-5 py-3">

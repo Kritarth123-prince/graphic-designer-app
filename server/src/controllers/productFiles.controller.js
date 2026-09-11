@@ -7,6 +7,7 @@ const {
   deleteOriginalFile,
   originalFilePath,
 } = require('../services/fileStorage.service');
+const { isValidImage, isValidOriginalFile } = require('../utils/fileSignature');
 
 async function addPreviewImages(req, res) {
   const product = await Product.findById(req.params.id);
@@ -17,6 +18,16 @@ async function addPreviewImages(req, res) {
   const files = req.files || [];
   if (files.length === 0) {
     return res.status(400).json({ success: false, message: 'No files uploaded.' });
+  }
+
+  // Multer's fileFilter only checked the *declared* Content-Type, which is
+  // attacker-controlled — verify the actual bytes before uploading anything.
+  const invalid = files.find((f) => !isValidImage(f.buffer));
+  if (invalid) {
+    return res.status(400).json({
+      success: false,
+      message: `"${invalid.originalname}" is not a valid JPEG, PNG, or WebP file.`,
+    });
   }
 
   const saved = [];
@@ -61,6 +72,13 @@ async function uploadOriginalFile(req, res) {
   }
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'No file uploaded.' });
+  }
+
+  if (!isValidOriginalFile(req.file.buffer)) {
+    return res.status(400).json({
+      success: false,
+      message: 'File content does not match an accepted design-file format (PSD/AI/PDF/PNG/JPEG/ZIP).',
+    });
   }
 
   // Replace any previous original file rather than accumulating orphans.

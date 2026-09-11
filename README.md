@@ -346,6 +346,16 @@ status-enum enforcement, and auth-gating on every admin route.
   not just the server log).
 - Malformed query params (e.g. an object where `category` expects a
   string) now return a clean `400` instead of a generic `500`.
+- **File upload content verification** (`server/src/utils/fileSignature.js`,
+  added post-launch during adversarial testing): multer's `fileFilter`
+  only checks the *declared* Content-Type of a multipart part, which any
+  raw HTTP client can forge regardless of actual content — confirmed
+  this by literally uploading non-image bytes labeled `image/png` and
+  watching it succeed. Every upload path (product preview images,
+  original design files, portfolio images, contact/custom-design
+  attachments) now also verifies the actual file bytes against known
+  magic-number signatures before anything reaches Cloudinary. See
+  `TESTING_GUIDE.md` §6.1 to verify this yourself.
 
 **SEO**
 - `GET /sitemap.xml` and `GET /robots.txt` — dynamic, built from live

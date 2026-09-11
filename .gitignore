@@ -5,3 +5,9 @@ build/
 .env.local
 .DS_Store
 *.log
+*.zip
+Testing/
+*.jpg
+*.png
+*.jpeg
+DEPLOYMENT.md

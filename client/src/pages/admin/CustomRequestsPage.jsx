@@ -70,8 +70,8 @@ export default function CustomRequestsPage() {
         </select>
       </div>
 
-      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-neutral-50 text-neutral-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3 font-medium">Name</th>

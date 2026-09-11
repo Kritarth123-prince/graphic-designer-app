@@ -14,6 +14,19 @@ export function SiteSettingsProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Applied once, site-wide — not per-page like useDocumentMeta's title/
+  // description, since the favicon doesn't change between routes.
+  useEffect(() => {
+    if (!settings?.faviconUrl) return;
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.setAttribute('rel', 'icon');
+      document.head.appendChild(link);
+    }
+    link.setAttribute('href', settings.faviconUrl);
+  }, [settings?.faviconUrl]);
+
   return (
     <SiteSettingsContext.Provider value={{ settings: settings || {}, loading }}>
       {children}

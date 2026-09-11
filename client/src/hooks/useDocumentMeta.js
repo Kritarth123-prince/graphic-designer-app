@@ -21,6 +21,23 @@ function setCanonical(url) {
   el.setAttribute('href', url);
 }
 
+const JSONLD_ID = 'jsonld-structured-data';
+
+function setStructuredData(data) {
+  let el = document.getElementById(JSONLD_ID);
+  if (!data) {
+    if (el) el.remove();
+    return;
+  }
+  if (!el) {
+    el = document.createElement('script');
+    el.id = JSONLD_ID;
+    el.type = 'application/ld+json';
+    document.head.appendChild(el);
+  }
+  el.textContent = JSON.stringify(data);
+}
+
 /**
  * This is a client-rendered SPA with no server-side rendering, so these
  * tags update after the initial HTML loads — fine for browser tabs and
@@ -29,7 +46,7 @@ function setCanonical(url) {
  * defaults in index.html. Worth keeping in mind if that ever matters
  * more than it does for a small storefront like this.
  */
-export function useDocumentMeta({ title, description, image, path }) {
+export function useDocumentMeta({ title, description, image, path, structuredData }) {
   useEffect(() => {
     if (title) document.title = title;
     setMetaTag('name', 'description', description);
@@ -43,5 +60,8 @@ export function useDocumentMeta({ title, description, image, path }) {
       setCanonical(`${origin}${path}`);
       setMetaTag('property', 'og:url', `${origin}${path}`);
     }
-  }, [title, description, image, path]);
+
+    setStructuredData(structuredData);
+    return () => setStructuredData(null);
+  }, [title, description, image, path, structuredData]);
 }

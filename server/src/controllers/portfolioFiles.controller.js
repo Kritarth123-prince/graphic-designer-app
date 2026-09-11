@@ -1,5 +1,6 @@
 const { PortfolioProject } = require('../models');
 const { savePreviewImage, deletePreviewImage, previewFilePath } = require('../services/fileStorage.service');
+const { isValidImage } = require('../utils/fileSignature');
 
 async function addImages(req, res) {
   const project = await PortfolioProject.findById(req.params.id);
@@ -10,6 +11,14 @@ async function addImages(req, res) {
   const files = req.files || [];
   if (files.length === 0) {
     return res.status(400).json({ success: false, message: 'No files uploaded.' });
+  }
+
+  const invalid = files.find((f) => !isValidImage(f.buffer));
+  if (invalid) {
+    return res.status(400).json({
+      success: false,
+      message: `"${invalid.originalname}" is not a valid JPEG, PNG, or WebP file.`,
+    });
   }
 
   const saved = [];

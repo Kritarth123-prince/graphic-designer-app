@@ -60,12 +60,12 @@ export default function ProductsPage() {
         </Link>
       </div>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search products…"
-          className="rounded border border-neutral-300 px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          className="rounded border border-neutral-300 px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-neutral-900"
         />
         <select
           value={status}
@@ -79,8 +79,8 @@ export default function ProductsPage() {
         </select>
       </div>
 
-      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="mt-6 bg-white border border-neutral-200 rounded-lg overflow-x-auto">
+        <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-neutral-50 text-neutral-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3 font-medium">Product</th>
