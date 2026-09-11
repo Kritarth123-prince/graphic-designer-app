@@ -7,7 +7,4 @@ build/
 *.log
 *.zip
 Testing/
-*.jpg
-*.png
-*.jpeg
 DEPLOYMENT.md
