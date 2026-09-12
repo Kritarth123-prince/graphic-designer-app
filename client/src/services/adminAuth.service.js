@@ -1,12 +1,17 @@
-import api from './api';
+import api, { setAuthToken } from './api';
 
 export async function login(email, password) {
   const { data } = await api.post('/auth/login', { email, password });
+  setAuthToken(data.token);
   return data.admin;
 }
 
 export async function logout() {
-  await api.post('/auth/logout');
+  try {
+    await api.post('/auth/logout');
+  } finally {
+    setAuthToken(null);
+  }
 }
 
 export async function me() {
