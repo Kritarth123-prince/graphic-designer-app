@@ -1,4 +1,5 @@
 import api from './api';
+import { downloadFile } from '../utils/download';
 
 export async function listAdmin(params = {}) {
   const { data } = await api.get('/custom-design/admin/all', { params });
@@ -20,6 +21,6 @@ export async function remove(id) {
   return data;
 }
 
-export function referenceFileDownloadUrl(id) {
-  return `${api.defaults.baseURL}/custom-design/admin/${id}/reference-file`;
+export async function downloadReferenceFile(id, filename) {
+  await downloadFile(`/custom-design/admin/${id}/reference-file`, filename);
 }

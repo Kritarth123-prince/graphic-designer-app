@@ -1,10 +1,10 @@
 const { verifyAdminToken } = require('../utils/token');
-const { SESSION_COOKIE_NAME } = require('../config/cookie');
 const { AdminUser } = require('../models');
 
 async function requireAuth(req, res, next) {
   try {
-    const token = req.cookies?.[SESSION_COOKIE_NAME];
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
     if (!token) {
       return res.status(401).json({ success: false, message: 'Not authenticated.' });
     }

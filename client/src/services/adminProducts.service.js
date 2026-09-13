@@ -1,4 +1,5 @@
 import api from './api';
+import { downloadFile } from '../utils/download';
 
 export async function listAdmin(params = {}) {
   const { data } = await api.get('/products/admin/all', { params });
@@ -69,6 +70,6 @@ export async function uploadOriginalFile(id, file, onProgress) {
   return data.file;
 }
 
-export function downloadOriginalFileUrl(id) {
-  return `${api.defaults.baseURL}/products/admin/${id}/file`;
+export async function downloadOriginalFile(id, filename) {
+  await downloadFile(`/products/admin/${id}/file`, filename);
 }

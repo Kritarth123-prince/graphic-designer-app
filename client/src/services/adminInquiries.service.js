@@ -1,4 +1,5 @@
 import api from './api';
+import { downloadFile } from '../utils/download';
 
 export async function listAdmin(params = {}) {
   const { data } = await api.get('/contact/admin/all', { params });
@@ -25,6 +26,6 @@ export async function remove(id) {
   return data;
 }
 
-export function attachmentDownloadUrl(id) {
-  return `${api.defaults.baseURL}/contact/admin/${id}/attachment`;
+export async function downloadAttachment(id, filename) {
+  await downloadFile(`/contact/admin/${id}/attachment`, filename);
 }

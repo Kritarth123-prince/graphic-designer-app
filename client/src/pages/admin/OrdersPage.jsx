@@ -28,7 +28,9 @@ export default function OrdersPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [notesDraft, setNotesDraft] = useState('');
   const [phoneDraft, setPhoneDraft] = useState('');
+  const [phoneEditingId, setPhoneEditingId] = useState(null);
   const [copiedStatus, setCopiedStatus] = useState(null);
+  const [messagePrompt, setMessagePrompt] = useState(null); // { orderId, statusKey } | null
   const [cancelTarget, setCancelTarget] = useState(null);
 
   function load() {
@@ -52,6 +54,7 @@ export default function OrdersPage() {
     try {
       await ordersApi.updateStatus(order._id, newStatus);
       showToast('Order status updated.');
+      setMessagePrompt(MESSAGE_TEMPLATES[newStatus] ? { orderId: order._id, statusKey: newStatus } : null);
       load();
     } catch {
       showToast('Something went wrong. Please try again.', 'error');
@@ -62,6 +65,7 @@ export default function OrdersPage() {
     try {
       await ordersApi.updateStatus(cancelTarget._id, 'CANCELLED');
       showToast('Order cancelled.');
+      setMessagePrompt({ orderId: cancelTarget._id, statusKey: 'CANCELLED' });
       setCancelTarget(null);
       load();
     } catch {
@@ -77,6 +81,7 @@ export default function OrdersPage() {
       setExpandedId(order._id);
       setNotesDraft(order.notes || '');
       setPhoneDraft(order.customerPhone || '');
+      setPhoneEditingId(null);
     }
   }
 
@@ -84,17 +89,39 @@ export default function OrdersPage() {
     try {
       await ordersApi.update(order._id, { notes: notesDraft, customerPhone: phoneDraft });
       showToast('Order updated.');
+      setPhoneEditingId(null);
       load();
     } catch {
       showToast('Something went wrong. Please try again.', 'error');
     }
   }
 
+  // navigator.clipboard needs a secure context (HTTPS/localhost) — on a
+  // plain HTTP admin panel it's unavailable, so fall back to the
+  // long-supported execCommand approach via a hidden textarea.
+  async function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const succeeded = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    if (!succeeded) throw new Error('execCommand copy failed');
+  }
+
   async function handleCopyMessage(order, statusKey) {
     const message = MESSAGE_TEMPLATES[statusKey](order);
     try {
-      await navigator.clipboard.writeText(message);
+      await copyToClipboard(message);
       setCopiedStatus(statusKey);
+      setMessagePrompt(null);
       setTimeout(() => setCopiedStatus(null), 2000);
     } catch {
       showToast('Could not copy — clipboard access is blocked.', 'error');
@@ -177,6 +204,23 @@ export default function OrdersPage() {
                         </option>
                       ))}
                     </select>
+                    {messagePrompt?.orderId === o._id && (
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleCopyMessage(o, messagePrompt.statusKey)}
+                          className="text-xs rounded bg-neutral-900 text-white px-2 py-1"
+                        >
+                          {copiedStatus === messagePrompt.statusKey ? 'Copied!' : 'Copy message to client'}
+                        </button>
+                        <button
+                          onClick={() => setMessagePrompt(null)}
+                          aria-label="Dismiss"
+                          className="text-neutral-400 hover:text-neutral-900 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
                 {expandedId === o._id && (
@@ -187,24 +231,29 @@ export default function OrdersPage() {
                           <p className="text-neutral-500">Customer email</p>
                           <p>{o.customerEmail || '—'}</p>
                           <p className="text-neutral-500 mt-2">Customer phone</p>
-                          <input
-                            value={phoneDraft}
-                            onChange={(e) => setPhoneDraft(e.target.value)}
-                            placeholder="Add phone number"
-                            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
-                          />
-                          <p className="text-neutral-500 mt-3 mb-1">Message to client</p>
-                          <div className="flex flex-wrap gap-2">
-                            {Object.keys(MESSAGE_TEMPLATES).map((key) => (
+                          {phoneEditingId === o._id ? (
+                            <input
+                              autoFocus
+                              value={phoneDraft}
+                              onChange={(e) => setPhoneDraft(e.target.value)}
+                              placeholder="Add phone number"
+                              className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <p>{o.customerPhone || '—'}</p>
                               <button
-                                key={key}
-                                onClick={() => handleCopyMessage(o, key)}
-                                className="text-xs rounded border border-neutral-300 px-2 py-1 hover:bg-neutral-100"
+                                onClick={() => {
+                                  setPhoneDraft(o.customerPhone || '');
+                                  setPhoneEditingId(o._id);
+                                }}
+                                aria-label="Edit phone number"
+                                className="text-neutral-400 hover:text-neutral-900"
                               >
-                                {copiedStatus === key ? 'Copied!' : key.replace(/_/g, ' ')}
+                                ✎
                               </button>
-                            ))}
-                          </div>
+                            </div>
+                          )}
                           {o.verifiedAt && (
                             <p className="mt-2 text-neutral-500">
                               Verified: {new Date(o.verifiedAt).toLocaleString()}

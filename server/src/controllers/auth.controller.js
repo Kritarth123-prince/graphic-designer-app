@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { AdminUser } = require('../models');
 const { signAdminToken } = require('../utils/token');
-const { SESSION_COOKIE_NAME, sessionCookieOptions } = require('../config/cookie');
 
 // Generic message on purpose — never reveal whether the email exists.
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
@@ -23,10 +22,10 @@ async function login(req, res) {
   await admin.save();
 
   const token = signAdminToken(admin);
-  res.cookie(SESSION_COOKIE_NAME, token, sessionCookieOptions());
 
   return res.json({
     success: true,
+    token,
     admin: {
       id: admin._id,
       email: admin.email,
@@ -37,7 +36,8 @@ async function login(req, res) {
 }
 
 async function logout(req, res) {
-  res.clearCookie(SESSION_COOKIE_NAME, { ...sessionCookieOptions(), maxAge: 0 });
+  // Stateless JWT sent as a bearer token — nothing to invalidate server-side.
+  // The client discards its stored token.
   return res.json({ success: true, message: 'Logged out.' });
 }
 

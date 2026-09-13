@@ -305,12 +305,16 @@ export default function ProductFormPage() {
             {product?.file?.storageKey ? (
               <p className="mt-3 text-sm">
                 {product.file.originalName}{' '}
-                <a
-                  href={productsApi.downloadOriginalFileUrl(id)}
+                <button
+                  onClick={() =>
+                    productsApi
+                      .downloadOriginalFile(id, product.file.originalName)
+                      .catch(() => showToast('Could not download the file.', 'error'))
+                  }
                   className="text-neutral-500 hover:text-neutral-900 underline text-xs ml-2"
                 >
                   Download
-                </a>
+                </button>
               </p>
             ) : (
               <p className="mt-3 text-sm text-neutral-400">No file uploaded yet.</p>

@@ -124,12 +124,16 @@ export default function InquiriesPage() {
                       <p className="text-xs text-neutral-500">Phone/WhatsApp: {i.phone || '—'}</p>
                       <p className="mt-3 text-sm whitespace-pre-line">{i.message}</p>
                       {i.attachment?.storageKey && (
-                        <a
-                          href={inquiriesApi.attachmentDownloadUrl(i._id)}
+                        <button
+                          onClick={() =>
+                            inquiriesApi
+                              .downloadAttachment(i._id, i.attachment.originalName)
+                              .catch(() => showToast('Could not download the file.', 'error'))
+                          }
                           className="mt-3 inline-block text-xs text-neutral-600 underline"
                         >
                           Download attachment ({i.attachment.originalName})
-                        </a>
+                        </button>
                       )}
                     </td>
                   </tr>

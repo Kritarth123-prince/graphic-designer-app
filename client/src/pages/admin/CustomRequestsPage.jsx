@@ -141,12 +141,16 @@ export default function CustomRequestsPage() {
                           <p className="text-neutral-500 mt-2">Deadline</p>
                           <p>{r.deadline ? new Date(r.deadline).toLocaleDateString() : '—'}</p>
                           {r.referenceFile?.storageKey && (
-                            <a
-                              href={requestsApi.referenceFileDownloadUrl(r._id)}
+                            <button
+                              onClick={() =>
+                                requestsApi
+                                  .downloadReferenceFile(r._id, r.referenceFile.originalName)
+                                  .catch(() => showToast('Could not download the file.', 'error'))
+                              }
                               className="mt-2 inline-block text-neutral-600 underline"
                             >
                               Download reference file
-                            </a>
+                            </button>
                           )}
                         </div>
                         <div className="col-span-2">

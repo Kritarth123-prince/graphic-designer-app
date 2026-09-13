@@ -17,6 +17,7 @@ const ORIGINAL_MIME_TYPES = [
   'image/png',
   'image/jpeg',
   'application/zip',
+  'application/x-zip-compressed', // Windows browsers (Chrome/Edge on Windows) report .zip this way
 ];
 const ORIGINAL_MAX_SIZE = 200 * 1024 * 1024; // 200MB
 
