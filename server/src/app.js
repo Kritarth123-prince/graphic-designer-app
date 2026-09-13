@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const mongoSanitize = require('express-mongo-sanitize');
 const { asyncHandler } = require('./utils/asyncHandler');
 
@@ -23,9 +24,15 @@ if (!allowedOrigin) {
 }
 
 app.use(helmet());
-app.use(cors({ origin: allowedOrigin }));
+app.use(
+  cors({
+    origin: allowedOrigin,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 // Strips keys starting with '$' or containing '.' from req.body/query/params —
 // prevents NoSQL operator injection (e.g. {"email": {"$ne": null}}) from
 // reaching a Mongoose query built from user input.

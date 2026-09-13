@@ -1,7 +1,3 @@
-const dns = require("dns");
-
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
 require('dotenv').config();
 
 // Some local networks/ISPs (common on Windows, common in India) fail to

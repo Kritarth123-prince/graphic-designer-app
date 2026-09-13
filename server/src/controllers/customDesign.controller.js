@@ -1,6 +1,12 @@
 const { CustomDesignRequest } = require('../models');
 const { sendCustomDesignNotification } = require('../services/email.service');
-const { saveAttachment, deleteAttachment, attachmentFilePath } = require('../services/fileStorage.service');
+const {
+  saveAttachment,
+  deleteAttachment,
+  attachmentFilePath,
+  fetchPrivateFile,
+  attachmentHeader,
+} = require('../services/fileStorage.service');
 const { isValidAttachment } = require('../utils/fileSignature');
 
 // ---------- Public ----------
@@ -109,7 +115,11 @@ async function downloadReferenceFile(req, res) {
     return res.status(404).json({ success: false, message: 'No reference file on record.' });
   }
   const signedUrl = attachmentFilePath(request.referenceFile.storageKey);
-  res.redirect(signedUrl);
+  const buffer = await fetchPrivateFile(signedUrl);
+
+  res.setHeader('Content-Disposition', attachmentHeader(request.referenceFile.originalName));
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.send(buffer);
 }
 
 module.exports = { submit, listAdmin, getAdminById, updateStatus, remove, downloadReferenceFile };

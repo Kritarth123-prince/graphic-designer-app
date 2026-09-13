@@ -82,7 +82,27 @@ function originalFilePath(storageKey) {
     resource_type: 'raw',
     type: 'authenticated',
     expires_at: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL_SECONDS,
+    attachment: true,
   });
+}
+
+// Cloudinary's private_download_url can't be given a custom download
+// filename (it always names the file after the public_id/format), so to
+// deliver it under its original upload name we fetch the bytes ourselves
+// and let the controller set its own Content-Disposition header.
+async function fetchPrivateFile(signedUrl) {
+  const response = await fetch(signedUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file from storage (status ${response.status})`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// Builds a Content-Disposition value that downloads under the given name,
+// including for names with non-ASCII characters (RFC 5987).
+function attachmentHeader(filename) {
+  const safeName = (filename || 'download').replace(/"/g, '');
+  return `attachment; filename="${safeName}"; filename*=UTF-8''${encodeURIComponent(safeName)}`;
 }
 
 // ---------- Contact / custom-design attachments (private) ----------
@@ -112,6 +132,7 @@ function attachmentFilePath(storageKey) {
     resource_type: 'raw',
     type: 'authenticated',
     expires_at: Math.floor(Date.now() / 1000) + SIGNED_URL_TTL_SECONDS,
+    attachment: true,
   });
 }
 
@@ -125,4 +146,6 @@ module.exports = {
   saveAttachment,
   deleteAttachment,
   attachmentFilePath,
+  fetchPrivateFile,
+  attachmentHeader,
 };

@@ -6,6 +6,19 @@ import StatusBadge from '../../components/admin/StatusBadge';
 
 const STATUS_OPTIONS = ['PENDING', 'SCREENSHOT_RECEIVED', 'PAYMENT_VERIFIED', 'DELIVERED', 'CANCELLED'];
 
+// Client-facing message drafts per status, so the admin can copy/paste
+// an update into WhatsApp/email instead of writing one from scratch.
+const MESSAGE_TEMPLATES = {
+  SCREENSHOT_RECEIVED: (o) =>
+    `Hi ${o.customerName || 'there'}, your order ${o.orderId} for "${o.productName}" has been accepted. We've received your payment screenshot and are verifying it now.`,
+  PAYMENT_VERIFIED: (o) =>
+    `Hi ${o.customerName || 'there'}, your payment for order ${o.orderId} ("${o.productName}") has been verified. We're preparing your design and will deliver it soon.`,
+  DELIVERED: (o) =>
+    `Hi ${o.customerName || 'there'}, your order ${o.orderId} ("${o.productName}") has been delivered. Thank you for choosing us!`,
+  CANCELLED: (o) =>
+    `Hi ${o.customerName || 'there'}, your order ${o.orderId} ("${o.productName}") has been cancelled. Please reach out if you have any questions.`,
+};
+
 export default function OrdersPage() {
   const { showToast } = useToast();
   const [orders, setOrders] = useState([]);
@@ -14,6 +27,8 @@ export default function OrdersPage() {
   const [status, setStatus] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [notesDraft, setNotesDraft] = useState('');
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [copiedStatus, setCopiedStatus] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
 
   function load() {
@@ -61,16 +76,28 @@ export default function OrdersPage() {
     } else {
       setExpandedId(order._id);
       setNotesDraft(order.notes || '');
+      setPhoneDraft(order.customerPhone || '');
     }
   }
 
   async function handleSaveNotes(order) {
     try {
-      await ordersApi.update(order._id, { notes: notesDraft });
-      showToast('Notes saved.');
+      await ordersApi.update(order._id, { notes: notesDraft, customerPhone: phoneDraft });
+      showToast('Order updated.');
       load();
     } catch {
       showToast('Something went wrong. Please try again.', 'error');
+    }
+  }
+
+  async function handleCopyMessage(order, statusKey) {
+    const message = MESSAGE_TEMPLATES[statusKey](order);
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopiedStatus(statusKey);
+      setTimeout(() => setCopiedStatus(null), 2000);
+    } catch {
+      showToast('Could not copy — clipboard access is blocked.', 'error');
     }
   }
 
@@ -160,7 +187,24 @@ export default function OrdersPage() {
                           <p className="text-neutral-500">Customer email</p>
                           <p>{o.customerEmail || '—'}</p>
                           <p className="text-neutral-500 mt-2">Customer phone</p>
-                          <p>{o.customerPhone || '—'}</p>
+                          <input
+                            value={phoneDraft}
+                            onChange={(e) => setPhoneDraft(e.target.value)}
+                            placeholder="Add phone number"
+                            className="w-full rounded border border-neutral-300 px-2 py-1 text-xs"
+                          />
+                          <p className="text-neutral-500 mt-3 mb-1">Message to client</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.keys(MESSAGE_TEMPLATES).map((key) => (
+                              <button
+                                key={key}
+                                onClick={() => handleCopyMessage(o, key)}
+                                className="text-xs rounded border border-neutral-300 px-2 py-1 hover:bg-neutral-100"
+                              >
+                                {copiedStatus === key ? 'Copied!' : key.replace(/_/g, ' ')}
+                              </button>
+                            ))}
+                          </div>
                           {o.verifiedAt && (
                             <p className="mt-2 text-neutral-500">
                               Verified: {new Date(o.verifiedAt).toLocaleString()}
@@ -184,7 +228,7 @@ export default function OrdersPage() {
                             onClick={() => handleSaveNotes(o)}
                             className="mt-2 text-xs bg-neutral-900 text-white rounded px-3 py-1.5"
                           >
-                            Save Notes
+                            Save Changes
                           </button>
                         </div>
                       </div>

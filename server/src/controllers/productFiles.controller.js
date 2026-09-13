@@ -6,6 +6,8 @@ const {
   saveOriginalFile,
   deleteOriginalFile,
   originalFilePath,
+  fetchPrivateFile,
+  attachmentHeader,
 } = require('../services/fileStorage.service');
 const { isValidImage, isValidOriginalFile } = require('../utils/fileSignature');
 
@@ -97,15 +99,18 @@ async function uploadOriginalFile(req, res) {
 
   return res.status(201).json({
     success: true,
-    file: { originalName: product.file.originalName, size: product.file.size },
+    file: {
+      storageKey: product.file.storageKey,
+      originalName: product.file.originalName,
+      size: product.file.size,
+    },
   });
 }
 
-// Admin-only: redirects to a freshly generated, short-lived signed
-// Cloudinary URL so the designer can prepare the file for manual
-// delivery after payment is verified. This is never reachable by
-// customers — no public download route exists, and the signed URL is
-// only generated after requireAuth has already passed.
+// Admin-only: fetches the file from Cloudinary's private storage and
+// streams it back under its original upload name. This is never
+// reachable by customers — no public download route exists, and the
+// file is only fetched after requireAuth has already passed.
 async function downloadOriginalFile(req, res) {
   const product = await Product.findById(req.params.id);
   if (!product || !product.file?.storageKey) {
@@ -113,7 +118,11 @@ async function downloadOriginalFile(req, res) {
   }
 
   const signedUrl = originalFilePath(product.file.storageKey);
-  res.redirect(signedUrl);
+  const buffer = await fetchPrivateFile(signedUrl);
+
+  res.setHeader('Content-Disposition', attachmentHeader(product.file.originalName));
+  res.setHeader('Content-Type', product.file.mimeType || 'application/octet-stream');
+  res.send(buffer);
 }
 
 module.exports = { addPreviewImages, removePreviewImage, uploadOriginalFile, downloadOriginalFile };

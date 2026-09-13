@@ -25,7 +25,7 @@ export default function AdminSidebar({ open, onClose, onNavigate }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 border-r border-neutral-200 bg-white flex flex-col transition-transform md:static md:z-auto md:w-56 md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 shrink-0 border-r border-neutral-200 bg-white flex flex-col transition-transform md:sticky md:top-0 md:z-auto md:h-screen md:w-56 md:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

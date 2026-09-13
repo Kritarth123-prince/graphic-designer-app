@@ -1,7 +1,13 @@
 const { ContactInquiry } = require('../models');
 const { getOrCreateSettings } = require('../services/settings.service');
 const { sendContactNotification, sendContactConfirmation } = require('../services/email.service');
-const { saveAttachment, deleteAttachment, attachmentFilePath } = require('../services/fileStorage.service');
+const {
+  saveAttachment,
+  deleteAttachment,
+  attachmentFilePath,
+  fetchPrivateFile,
+  attachmentHeader,
+} = require('../services/fileStorage.service');
 const { isValidAttachment } = require('../utils/fileSignature');
 
 // ---------- Public ----------
@@ -107,7 +113,11 @@ async function downloadAttachment(req, res) {
     return res.status(404).json({ success: false, message: 'No attachment on record.' });
   }
   const signedUrl = attachmentFilePath(inquiry.attachment.storageKey);
-  res.redirect(signedUrl);
+  const buffer = await fetchPrivateFile(signedUrl);
+
+  res.setHeader('Content-Disposition', attachmentHeader(inquiry.attachment.originalName));
+  res.setHeader('Content-Type', 'application/octet-stream');
+  res.send(buffer);
 }
 
 module.exports = {
