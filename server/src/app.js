@@ -10,22 +10,40 @@ const app = express();
 // browser's actual Origin header "https://x.netlify.app") are a common,
 // easy-to-miss cause of every cross-origin request failing — normalize
 // it away rather than requiring an exact match including the slash.
-const allowedOrigin = (process.env.CLIENT_URL || '').replace(/\/$/, '');
+// CLIENT_URL can be a comma-separated list (e.g. both your LAN IP and
+// localhost while developing) — useful since the same dev server is
+// often reachable at more than one origin.
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
 
-if (!allowedOrigin) {
+if (allowedOrigins.length === 0) {
   console.warn(
     '[cors] WARNING: CLIENT_URL is not set. Every request from the frontend ' +
-      'will be blocked by CORS until this is set to your deployed frontend URL ' +
-      '(e.g. https://your-site.netlify.app, no trailing slash).'
+      'will be blocked by CORS until this is set to your frontend URL(s) ' +
+      '(e.g. https://your-site.netlify.app, or a comma-separated list, no trailing slash).'
   );
 } else {
-  console.log(`[cors] Allowing requests from: ${allowedOrigin}`);
+  console.log(`[cors] Allowing requests from: ${allowedOrigins.join(', ')}`);
 }
 
 app.use(helmet());
+// helmet() already sets CSP, X-Frame-Options, X-Content-Type-Options, and
+// Referrer-Policy — Permissions-Policy is the one header it doesn't set
+// by default.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
+  next();
+});
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin(origin, callback) {
+      // No Origin header (e.g. curl, server-to-server) — nothing to check against.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
   })
 );
 app.use(express.json({ limit: '2mb' }));

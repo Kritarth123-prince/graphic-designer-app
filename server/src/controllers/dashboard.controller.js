@@ -13,6 +13,7 @@ async function getDashboard(req, res) {
     totalInquiries,
     unreadInquiries,
     totalCustomRequests,
+    newCustomRequests,
     recentOrders,
     recentInquiries,
     recentCustomRequests,
@@ -31,6 +32,7 @@ async function getDashboard(req, res) {
     ContactInquiry.countDocuments({ read: false }),
 
     CustomDesignRequest.countDocuments({}),
+    CustomDesignRequest.countDocuments({ status: 'NEW' }),
 
     Order.find({}).sort({ createdAt: -1 }).limit(5).select('orderId productName price status createdAt'),
     ContactInquiry.find({}).sort({ createdAt: -1 }).limit(5).select('name subject read createdAt'),
@@ -66,6 +68,7 @@ async function getDashboard(req, res) {
       },
       customRequests: {
         total: totalCustomRequests,
+        new: newCustomRequests,
       },
       // Manually recorded/verified revenue — not from an automatic payment system.
       recordedRevenue,

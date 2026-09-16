@@ -4,9 +4,11 @@ const { Product, PortfolioProject } = require('../models');
 // the PUBLIC site's own base URL to build correct <loc> entries — not
 // this API's own URL. Set SITE_URL in server/.env to the deployed
 // frontend's origin (e.g. https://www.yoursite.com). Falls back to
-// CLIENT_URL, which is close enough for local/dev use.
+// CLIENT_URL, which is close enough for local/dev use — CLIENT_URL can
+// be a comma-separated list (see app.js), so just take the first origin.
 function siteBaseUrl() {
-  return (process.env.SITE_URL || process.env.CLIENT_URL || '').replace(/\/$/, '');
+  const fallback = (process.env.CLIENT_URL || '').split(',')[0];
+  return (process.env.SITE_URL || fallback || '').trim().replace(/\/$/, '');
 }
 
 const STATIC_PATHS = [
