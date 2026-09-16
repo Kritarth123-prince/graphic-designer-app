@@ -1,10 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getPortfolio } from '../../services/portfolio.service';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import EmptyState from '../../components/common/EmptyState';
 import { noSaveImageProps } from '../../utils/imageProtection';
 
 export default function PortfolioPage() {
+  useDocumentMeta({
+    title: 'Portfolio',
+    description: 'Selected work — brand identities, campaigns, and visual systems.',
+    path: '/portfolio',
+  });
+
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
 

@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { submitContact } from '../../services/contact.service';
 import { useToast } from '../../context/ToastContext';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 
 const emptyForm = { name: '', email: '', phone: '', subject: '', message: '' };
 
 export default function ContactPage() {
+  useDocumentMeta({
+    title: 'Contact',
+    description: 'Get in touch about a project, a question, or anything else.',
+    path: '/contact',
+  });
+
   const { showToast } = useToast();
   const [form, setForm] = useState(emptyForm);
   const [attachment, setAttachment] = useState(null);

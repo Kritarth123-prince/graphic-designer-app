@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { getProducts } from '../../services/products.service';
 import { getCategories } from '../../services/categories.service';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 import ProductGrid from '../../components/product/ProductGrid';
 import ProductFilters from '../../components/product/ProductFilters';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
@@ -11,6 +12,12 @@ import Pagination from '../../components/common/Pagination';
 
 export default function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+
+  useDocumentMeta({
+    title: 'Shop the Collection',
+    description: 'Curated digital designs, ready to license and use — each one a limited, original piece.',
+    path: '/shop',
+  });
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);

@@ -11,7 +11,7 @@ export default function ProductCard({ product }) {
             alt={product.title}
             loading="lazy"
             {...noSaveImageProps}
-            className={`h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${noSaveImageProps.className}`}
+            className={`h-full w-full object-contain transition-transform duration-700 ease-out group-hover:scale-105 ${noSaveImageProps.className}`}
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center text-ivory/30 font-serif text-sm">

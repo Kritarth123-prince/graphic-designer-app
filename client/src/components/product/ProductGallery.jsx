@@ -55,7 +55,7 @@ export default function ProductGallery({ images, title }) {
             src={active.url}
             alt={active.alt || title}
             {...noSaveImageProps}
-            className={`h-full w-full object-cover ${noSaveImageProps.className}`}
+            className={`h-full w-full object-contain ${noSaveImageProps.className}`}
           />
         </button>
 
@@ -116,7 +116,7 @@ export default function ProductGallery({ images, title }) {
                 alt=""
                 loading="lazy"
                 {...noSaveImageProps}
-                className={`h-full w-full object-cover ${noSaveImageProps.className}`}
+                className={`h-full w-full object-contain ${noSaveImageProps.className}`}
               />
             </button>
           ))}

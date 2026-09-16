@@ -10,7 +10,7 @@ Built in phases (see `PROGRESS.md` for current status).
 - **Frontend:** React (Vite), React Router, Tailwind CSS, Axios — deployed on **Netlify**
 - **Backend:** Node.js, Express — deployed on **Render**
 - **Database:** MongoDB Atlas (Mongoose ODM)
-- **Auth:** HTTP-only cookie sessions, bcrypt password hashing
+- **Auth:** JWT bearer tokens (sent as `Authorization: Bearer <token>`), bcrypt password hashing
 - **Email:** Nodemailer over SMTP
 - **File storage:** Cloudinary — public preview images, private (`authenticated`
   delivery) original design files and form attachments, accessed only via
@@ -95,23 +95,66 @@ Auth endpoints:
 
 | Method | Route | Notes |
 |---|---|---|
-| `POST` | `/api/auth/login` | Rate-limited (10 attempts / 15 min / IP). Sets an `HttpOnly`, `SameSite` session cookie. |
-| `POST` | `/api/auth/logout` | Clears the session cookie. |
-| `GET` | `/api/auth/me` | Requires a valid session; returns the current admin. |
+| `POST` | `/api/auth/login` | Rate-limited (10 attempts / 15 min / IP). Returns a signed JWT in the response body. |
+| `POST` | `/api/auth/logout` | Stateless JWT — nothing to invalidate server-side; the client just discards its stored token. |
+| `GET` | `/api/auth/me` | Requires a valid `Authorization: Bearer <token>` header; returns the current admin. |
 
 Passwords are hashed with bcrypt (cost factor 12) and never returned by any
 query by default (`select: false` on `passwordHash`). Sessions are a signed
-JWT stored in an `HttpOnly` cookie — never in `localStorage` — so it's
-inaccessible to frontend JavaScript. Protect any future admin route with
-`requireAuth` from `server/src/middleware/auth.middleware.js`.
+JWT returned to the client on login and stored in `localStorage`, then sent
+back as an `Authorization: Bearer <token>` header on every admin request
+(see `client/src/services/api.js`). A bearer token was chosen over a cookie
+specifically because it isn't subject to browsers' cross-site cookie
+policies — iOS Safari/WebKit (which every iOS browser runs on, including
+Chrome and Firefox) enforces those far more strictly than Chromium/Firefox
+on desktop or Android, and was silently dropping the old session cookie.
+Protect any future admin route with `requireAuth` from
+`server/src/middleware/auth.middleware.js`.
 
 ## Dashboard & settings (Phase 3)
 
 | Method | Route | Auth | Notes |
 |---|---|---|---|
-| `GET` | `/api/settings` | Public | Returns the single `SiteSettings` document (hero copy, UPI, WhatsApp number, socials — all meant to be publicly displayed). Auto-creates the default doc on first read. |
+| `GET` | `/api/settings` | Public | Returns `SiteSettings` (hero copy, WhatsApp number, socials, UPI payment details, etc.) — everything here is now deliberately public because something on the public site actually renders it (see below). `PUBLIC_EXCLUDED_FIELDS` in the controller is the mechanism for excluding a field in the future if a genuinely sensitive one gets added. Auto-creates the default doc on first read. |
+| `GET` | `/api/settings/admin` | Admin | The full document, for the settings form itself — currently identical to the public response, kept as a separate route so future admin-only fields have somewhere to go without touching the public one. |
 | `PUT` | `/api/settings` | Admin | Field-whitelisted partial update — a stray `_id` or unknown key in the body is silently dropped, not written. |
+| `POST` | `/api/settings/admin/image` | Admin | Generic image upload for any settings image field (logo, favicon, hero image, profile image, UPI QR) — one endpoint, the frontend drops the returned URL into whichever field triggered it. Same Cloudinary storage and magic-byte content verification as product/portfolio images. |
 | `GET` | `/api/admin/dashboard` | Admin | Product/order/inquiry/custom-request counts, `recordedRevenue` (sum of `PAYMENT_VERIFIED`/`DELIVERED` orders only — manually verified, not from an automatic payment system), and the 5 most recent orders/inquiries/custom requests. |
+
+**The `upi` field's story, for anyone reading the git history and
+wondering why it moved twice:** originally the public endpoint returned
+the entire settings document with no filtering — a real over-exposure
+bug, since at the time nothing on the public site rendered UPI details
+at all. Excluded it. Then the product page was built to actually
+*display* UPI payment details to customers (see below) — at that point
+excluding it would have broken the feature that needed it, so it was
+restored to the public response deliberately. Both states were correct
+for what was true at the time; the lesson isn't "always exclude" or
+"always include," it's that a field's public/private status should
+track whether something legitimate actually consumes it, and the
+`fields with zero consuming UI` bug (below) is why this whole area
+needed a second look.
+
+### Settings fields that existed but were never actually wired to anything
+
+An audit (prompted by this being reported) found that most of the admin
+Settings form's fields had no consuming UI at all — the form saved data
+that nothing on the public site ever read. Fixed:
+
+| Field | Where it shows now |
+|---|---|
+| `logoUrl` | Site header, replacing the text wordmark when set |
+| `faviconUrl` | Applied dynamically to the actual browser tab icon |
+| `heroImageUrl` | Now actually rendered on the homepage (previously only used as an Open Graph meta tag — never visible on the page itself) |
+| `social.*` | New "Follow" column in the footer, only shown for the platforms you've actually filled in |
+| `email` | Shown as a `mailto:` link in the footer |
+| `upi.*` | New block on every product page, right under "Order via WhatsApp" — UPI ID with a one-click copy button, the QR code image, and your payment instructions |
+
+Every image field in the admin Settings form (Logo, Favicon, Hero Image,
+Profile Image, UPI QR Code) now has an **Upload** button alongside the
+URL text input — pick a file and it uploads to Cloudinary and fills the
+URL in automatically, rather than requiring you to host the image
+somewhere else first and paste a link.
 
 ## Categories & products (Phase 4)
 
@@ -230,20 +273,25 @@ correct status codes and data.
 
 ### Known limitations worth knowing about
 
-- **Logout doesn't revoke the JWT server-side.** It clears the browser
-  cookie, but the token itself stays cryptographically valid until it
-  expires (`JWT_EXPIRES_IN`, default 7 days) — there's no server-side
-  session store to blocklist it. Reasonable for a single-admin site;
-  would need a token-revocation store to harden further.
-- **Cross-origin cookie deployment.** *(Updated: see the Deployment
-  section at the end of this file.)* The session cookie now uses
-  `SameSite=None; Secure` in production specifically because Render and
-  Netlify sit on different top-level domains by default — this was
-  originally flagged here as a risk with `SameSite=Strict`, then fixed
-  once the actual deployment target (Render + Netlify) was confirmed.
-  It's safe in this app's specific case because CORS is locked to one
-  exact origin and every mutating route requires a CORS preflight; see
-  `server/src/config/cookie.js` for the full reasoning.
+- **Logout doesn't revoke the JWT server-side.** It clears the token from
+  the browser's `localStorage`, but the token itself stays cryptographically
+  valid until it expires (`JWT_EXPIRES_IN`, default 7 days) — there's no
+  server-side session store to blocklist it. Reasonable for a single-admin
+  site; would need a token-revocation store to harden further.
+- **Auth moved from a cookie to a bearer token.** *(Updated: see the
+  Deployment section at the end of this file.)* Login originally set an
+  `HttpOnly`, `SameSite=None; Secure` session cookie, needed because Render
+  and Netlify sit on different top-level domains. That worked on
+  Chromium/Firefox but iOS Safari/WebKit (which every iOS browser runs on)
+  enforces cross-site cookie restrictions strictly enough that the cookie
+  was silently dropped there — login would succeed but the follow-up
+  request to load admin data had no session. The fix was to stop using a
+  cookie at all: login now returns the JWT directly in the response body,
+  the client stores it and sends it back as an `Authorization: Bearer
+  <token>` header on every admin request. A header isn't subject to any
+  cross-site cookie policy, so this works identically on every browser and
+  platform. `server/src/config/cookie.js` and `cookie-parser` have been
+  removed since nothing uses cookies for auth anymore.
 
 ## Portfolio system (Phase 7)
 
@@ -421,9 +469,10 @@ status-enum enforcement, and auth-gating on every admin route.
   Express app (real HTTP requests, real validation, real file I/O) —
   not a real database. Connect a real `MONGODB_URI` and re-run the
   basic flows once before going live.
-- **Cross-origin cookie deployment** (flagged in Phase 6.5) and
-  **JWT logout not being server-revocable** (also Phase 6.5) are both
-  still true — nothing in this phase changed that tradeoff.
+- **Auth now uses a bearer token, not a cookie** (see the Deployment
+  section) — this removed the cross-origin cookie tradeoff entirely.
+  **JWT logout not being server-revocable** (flagged in Phase 6.5) is
+  still true — nothing in this phase changed that.
 - **Legal page content is a placeholder**, not reviewed legal text.
 - Lighthouse/axe-style automated audits weren't run (no such tooling
   available in this sandbox) — the accessibility and performance work
@@ -495,10 +544,22 @@ part is real security and doesn't depend on any client-side trick.
    `client/netlify.toml` (`npm run build`, `dist`) — Netlify should
    pick these up automatically.
 2. Set `VITE_API_BASE_URL` to `https://your-app.onrender.com/api`.
-3. Deploy. Note the Netlify URL (`https://your-site.netlify.app`).
-4. **Go back to Render** and set `CLIENT_URL` and `SITE_URL` to this
+3. In `client/netlify.toml` and `client/public/_redirects`, replace the
+   two placeholder `your-app.onrender.com` URLs (for `/sitemap.xml` and
+   `/robots.txt`) with your actual Render backend URL — same host as
+   step 2, without the `/api` suffix.
+4. Deploy. Note the Netlify URL (`https://your-site.netlify.app`).
+5. **Go back to Render** and set `CLIENT_URL` and `SITE_URL` to this
    Netlify URL, then redeploy the backend so CORS and the sitemap both
    pick it up.
+
+**Security headers** (Content-Security-Policy, X-Frame-Options,
+X-Content-Type-Options, Referrer-Policy, Permissions-Policy) are set in
+`client/netlify.toml` for the frontend, and via `helmet()` plus one small
+extra middleware in `server/src/app.js` for the API. If you add a new
+external resource to the frontend (an embed, a script, another image
+host), it needs a matching entry in that CSP or it will be silently
+blocked.
 
 ### Why this specific combination needed real code changes
 
@@ -506,21 +567,20 @@ Render and Netlify's default URLs are on different top-level domains —
 that's genuinely cross-site from a browser's perspective, which matters
 for two things this app does:
 
-- **The admin session cookie.** `SameSite=Strict` (a reasonable default
-  for same-domain deployments) would silently stop the browser from
-  sending it on any admin API call from Netlify to Render, and login
-  would appear to fail with no clear error. This is now `SameSite=None;
-  Secure` in production — see `server/src/config/cookie.js` for the
-  full reasoning on why that's safe here specifically (locked CORS
-  origin + preflight-requiring mutating routes).
+- **Admin auth.** This was originally a session cookie, which needed
+  `SameSite=None; Secure` to survive the cross-site Netlify → Render
+  request. That worked on desktop/Android browsers but was silently
+  dropped by iOS Safari/WebKit's stricter cross-site cookie handling
+  (affecting every iOS browser, since they all run on WebKit) — login
+  would succeed but the next request had no session. Auth now uses a
+  JWT bearer token instead: login returns the token in the response
+  body, the client stores it and sends `Authorization: Bearer <token>`
+  on every admin request. A header isn't subject to cross-site cookie
+  policy at all, so this works the same on every browser and platform,
+  and there's no cookie configuration to get right. `cookie-parser` and
+  `server/src/config/cookie.js` have been removed accordingly.
 - **The SPA's client-side routing.** Netlify serves static files by
   default, so refreshing a deep link like `/shop/some-poster` would
   404 without a rewrite rule. `client/public/_redirects` and
   `client/netlify.toml` both handle this — confirmed the rule actually
   ships in the build output.
-
-If you ever move to custom domains under one parent domain (e.g.
-`app.yoursite.com` for Netlify + `api.yoursite.com` for Render), the
-cookie could be tightened back to `SameSite=Strict` for defense in
-depth — it wouldn't be required for correctness at that point, only
-extra hardening.

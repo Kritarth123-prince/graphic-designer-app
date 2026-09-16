@@ -3,13 +3,20 @@ import { Link } from 'react-router-dom';
 import { getDashboard } from '../../services/adminDashboard.service';
 import StatusBadge from '../../components/admin/StatusBadge';
 
-function StatCard({ label, value, sub }) {
+function StatCard({ label, value, sub, highlight, to }) {
+  const Wrapper = to ? Link : 'div';
   return (
-    <div className="bg-white border border-neutral-200 rounded-lg p-5">
+    <Wrapper
+      {...(to ? { to } : {})}
+      className={`relative border rounded-lg p-5 block ${
+        highlight ? 'bg-red-50 border-red-200' : 'bg-white border-neutral-200'
+      } ${to ? 'hover:border-neutral-400 transition-colors' : ''}`}
+    >
+      {highlight && <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-red-500" />}
       <p className="text-xs text-neutral-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-neutral-900">{value}</p>
       {sub && <p className="mt-1 text-xs text-neutral-400">{sub}</p>}
-    </div>
+    </Wrapper>
   );
 }
 
@@ -33,17 +40,40 @@ export default function DashboardPage() {
       <h1 className="text-xl font-semibold">Dashboard</h1>
 
       <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Products" value={stats.products.total} sub={`${stats.products.published} published`} />
-        <StatCard label="Featured Products" value={stats.products.featured} />
-        <StatCard label="Total Orders" value={stats.orders.total} sub={`${stats.orders.pending} pending`} />
-        <StatCard label="Delivered Orders" value={stats.orders.delivered} />
-        <StatCard label="Payment Verified" value={stats.orders.paymentVerified} />
-        <StatCard label="Unread Inquiries" value={stats.inquiries.unread} sub={`${stats.inquiries.total} total`} />
-        <StatCard label="Custom Requests" value={stats.customRequests.total} />
+        <StatCard
+          label="Total Products"
+          value={stats.products.total}
+          sub={`${stats.products.published} published`}
+          to="/admin/products"
+        />
+        <StatCard label="Featured Products" value={stats.products.featured} to="/admin/products" />
+        <StatCard
+          label="Total Orders"
+          value={stats.orders.total}
+          sub={`${stats.orders.pending} pending`}
+          to="/admin/orders"
+        />
+        <StatCard label="Delivered Orders" value={stats.orders.delivered} to="/admin/orders" />
+        <StatCard label="Payment Verified" value={stats.orders.paymentVerified} to="/admin/orders" />
+        <StatCard
+          label="Unread Inquiries"
+          value={stats.inquiries.unread}
+          sub={`${stats.inquiries.total} total`}
+          highlight={stats.inquiries.unread > 0}
+          to="/admin/inquiries"
+        />
+        <StatCard
+          label="Custom Requests"
+          value={stats.customRequests.total}
+          sub={`${stats.customRequests.new} new`}
+          highlight={stats.customRequests.new > 0}
+          to="/admin/custom-requests"
+        />
         <StatCard
           label="Recorded Revenue"
           value={`₹${stats.recordedRevenue}`}
           sub="Manually verified orders only"
+          to="/admin/orders"
         />
       </div>
 
@@ -67,12 +97,20 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white border border-neutral-200 rounded-lg p-5">
-          <h2 className="text-sm font-semibold">Recent Inquiries</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Recent Inquiries</h2>
+            <Link to="/admin/inquiries" className="text-xs text-neutral-500 hover:text-neutral-900">
+              View all
+            </Link>
+          </div>
           <ul className="mt-4 space-y-3">
             {recentActivity.inquiries.length === 0 && <p className="text-xs text-neutral-400">No inquiries yet.</p>}
             {recentActivity.inquiries.map((i) => (
               <li key={i._id} className="text-sm flex justify-between items-center">
-                <span className="truncate">{i.subject}</span>
+                <span className="truncate flex items-center gap-2">
+                  {!i.read && <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />}
+                  {i.subject}
+                </span>
                 {!i.read && <span className="text-xs text-blue-600">New</span>}
               </li>
             ))}
@@ -80,14 +118,22 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white border border-neutral-200 rounded-lg p-5">
-          <h2 className="text-sm font-semibold">Custom Requests</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Custom Requests</h2>
+            <Link to="/admin/custom-requests" className="text-xs text-neutral-500 hover:text-neutral-900">
+              View all
+            </Link>
+          </div>
           <ul className="mt-4 space-y-3">
             {recentActivity.customRequests.length === 0 && (
               <p className="text-xs text-neutral-400">No requests yet.</p>
             )}
             {recentActivity.customRequests.map((c) => (
               <li key={c._id} className="text-sm flex justify-between items-center">
-                <span className="truncate">{c.designType}</span>
+                <span className="truncate flex items-center gap-2">
+                  {c.status === 'NEW' && <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />}
+                  {c.designType}
+                </span>
                 <span className="text-xs text-neutral-400">{c.status}</span>
               </li>
             ))}

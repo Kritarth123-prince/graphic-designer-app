@@ -2,7 +2,36 @@
   command = "npm run build"
   publish = "dist"
 
+# sitemap.xml and robots.txt are generated dynamically by the API (they
+# need to know which products/portfolio projects are actually published),
+# but crawlers look for them on the public site's own domain, not the
+# API's. Proxying keeps the URL on this domain while the API supplies the
+# content. Replace with your actual Render backend URL (same host as
+# VITE_API_BASE_URL, without the /api suffix).
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "https://your-app.onrender.com/sitemap.xml"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "https://your-app.onrender.com/robots.txt"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    # style-src/script-src have no 'unsafe-inline' because the app has no
+    # inline <style>/<script> — Google Fonts' stylesheet and font files,
+    # Cloudinary-hosted images, and the API itself are the only external
+    # origins in use. Update connect-src if the API isn't on *.onrender.com.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://*.onrender.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"

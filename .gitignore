@@ -5,6 +5,3 @@ build/
 .env.local
 .DS_Store
 *.log
-*.zip
-Testing/
-DEPLOYMENT.md

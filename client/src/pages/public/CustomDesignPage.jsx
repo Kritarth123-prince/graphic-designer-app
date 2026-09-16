@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { submitCustomDesignRequest } from '../../services/customDesign.service';
 import { useToast } from '../../context/ToastContext';
+import { useDocumentMeta } from '../../hooks/useDocumentMeta';
 
 const SERVICES = [
   'Social media designs',
@@ -24,6 +25,12 @@ const emptyForm = {
 };
 
 export default function CustomDesignPage() {
+  useDocumentMeta({
+    title: 'Custom Design Request',
+    description: 'Commission a custom design — social posts, posters, branding, and more, made to your brief.',
+    path: '/custom-design',
+  });
+
   const { showToast } = useToast();
   const [form, setForm] = useState(emptyForm);
   const [referenceFile, setReferenceFile] = useState(null);

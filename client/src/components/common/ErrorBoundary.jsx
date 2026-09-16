@@ -18,9 +18,9 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '4rem 1.5rem', textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
-          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Something went wrong.</h1>
-          <p style={{ color: '#666' }}>
+        <div className="px-6 py-16 text-center font-sans">
+          <h1 className="text-2xl mb-2">Something went wrong.</h1>
+          <p className="text-neutral-600">
             Please refresh the page. If this keeps happening, check the browser console for details.
           </p>
         </div>
