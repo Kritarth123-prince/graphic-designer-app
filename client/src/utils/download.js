@@ -12,8 +12,8 @@ export async function downloadFile(path, filename) {
   // since the server-supplied name is untrusted input.
   const safeName = typeof filename === 'string' ? filename.replace(/[^a-zA-Z0-9._ -]/g, '_') : '';
   link.download = safeName || 'download';
-  document.body.appendChild(link);
+  // .click() works on a detached anchor in all current browsers, so
+  // there's no need to insert it into the document at all.
   link.click();
-  link.remove();
   window.URL.revokeObjectURL(url);
 }
