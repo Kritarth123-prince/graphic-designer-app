@@ -3,7 +3,10 @@ const { generateOrderId } = require('../services/orderId.service');
 
 // Escapes regex metacharacters so user-supplied search text is matched
 // literally, preventing catastrophic-backtracking (ReDoS) patterns.
+// req.query.q can be a non-string (e.g. ?q[x]=1 parses to an object),
+// so this only treats actual strings as search text.
 function escapeRegExp(str) {
+  if (typeof str !== 'string') return '';
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 

@@ -8,9 +8,10 @@ export async function downloadFile(path, filename) {
   const url = window.URL.createObjectURL(response.data);
   const link = document.createElement('a');
   link.href = url;
-  // Strip path separators so the stored filename can't escape its
-  // intended download directory or be mistaken for a path.
-  link.download = (filename || 'download').replace(/[/\\]/g, '_');
+  // Allow-list to plain filename characters before it reaches the DOM,
+  // since the server-supplied name is untrusted input.
+  const safeName = typeof filename === 'string' ? filename.replace(/[^a-zA-Z0-9._ -]/g, '_') : '';
+  link.download = safeName || 'download';
   document.body.appendChild(link);
   link.click();
   link.remove();
