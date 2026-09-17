@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 
+// Only redirect back to an internal path. Rejects protocol-relative
+// URLs (e.g. "//evil.com") so this can't be turned into an open redirect.
+function safeRedirectPath(path) {
+  return typeof path === 'string' && /^\/(?!\/)/.test(path) ? path : '/admin';
+}
+
 export default function LoginPage() {
   const { login, isAuthenticated, checking } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const redirectTo = safeRedirectPath(location.state?.from?.pathname);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +20,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!checking && isAuthenticated) {
-    return <Navigate to={location.state?.from?.pathname || '/admin'} replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   async function handleSubmit(e) {
@@ -22,7 +29,7 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login(email, password);
-      navigate(location.state?.from?.pathname || '/admin', { replace: true });
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || 'Login failed. Please try again.');
     } finally {

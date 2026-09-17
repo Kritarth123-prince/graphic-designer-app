@@ -8,7 +8,9 @@ export async function downloadFile(path, filename) {
   const url = window.URL.createObjectURL(response.data);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename || 'download';
+  // Strip path separators so the stored filename can't escape its
+  // intended download directory or be mistaken for a path.
+  link.download = (filename || 'download').replace(/[/\\]/g, '_');
   document.body.appendChild(link);
   link.click();
   link.remove();

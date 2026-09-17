@@ -117,7 +117,7 @@ async function create(req, res) {
   }
 
   const slug = await generateUniqueSlug(Product, req.body.title);
-  const productId = req.body.productId
+  const productId = typeof req.body.productId === 'string' && req.body.productId
     ? req.body.productId.toUpperCase()
     : await generateProductId();
 

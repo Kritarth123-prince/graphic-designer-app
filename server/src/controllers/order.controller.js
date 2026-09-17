@@ -1,6 +1,12 @@
 const { Order, Product } = require('../models');
 const { generateOrderId } = require('../services/orderId.service');
 
+// Escapes regex metacharacters so user-supplied search text is matched
+// literally, preventing catastrophic-backtracking (ReDoS) patterns.
+function escapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // ---------- Public ----------
 
 // Created when the customer clicks "Order via WhatsApp" on the product
@@ -43,12 +49,13 @@ async function listAdmin(req, res) {
   const filter = {};
   if (status) filter.status = status;
   if (q) {
+    const safeQ = new RegExp(escapeRegExp(q), 'i');
     filter.$or = [
-      { orderId: new RegExp(q, 'i') },
-      { productName: new RegExp(q, 'i') },
-      { customerName: new RegExp(q, 'i') },
-      { customerEmail: new RegExp(q, 'i') },
-      { customerPhone: new RegExp(q, 'i') },
+      { orderId: safeQ },
+      { productName: safeQ },
+      { customerName: safeQ },
+      { customerEmail: safeQ },
+      { customerPhone: safeQ },
     ];
   }
 
